@@ -1,0 +1,12 @@
+
+RewriteEngine on
+# Remove .Html Extension
+DirectorySlash Off
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.*)$ $1.html
+
+# Remove .Php Extension
+DirectorySlash Off
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^(.*)$ $1.php
+Options -Indexes

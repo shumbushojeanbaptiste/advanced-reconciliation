@@ -1,0 +1,31 @@
+# =============================
+# ENABLE REWRITE ENGINE
+# =============================
+RewriteEngine On
+
+# =============================
+# REMOVE .html EXTENSION
+# =============================
+DirectorySlash Off
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.*)$ $1.html [L]
+
+# =============================
+# REMOVE .php EXTENSION
+# =============================
+DirectorySlash Off
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^(.*)$ $1.php [L]
+
+# =============================
+# ROUTING: ALL OTHER REQUESTS TO index.php
+# =============================
+# Only if the requested file/folder does not exist
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]
+
+# =============================
+# SECURITY: DISABLE DIRECTORY LISTING
+# =============================
+Options -Indexes

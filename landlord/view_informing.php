@@ -1,0 +1,1 @@
+<?php  include'../expenses/view_informing.php'; ?>
