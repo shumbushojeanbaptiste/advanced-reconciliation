@@ -74,6 +74,16 @@
           </span>
         <ul class="nav nav-tabs flex-column" id="myTab" role="tablist">
             <?php 
+            // fetc first account ID
+
+             $sqlAC = $db->prepare("SELECT account_id, account_name, account_reference, account_method_type, balance, created_at,method_name FROM tbl_accounts
+                 LEFT JOIN payment_methods ON payment_methods.method_id= tbl_accounts.account_method_type order by tbl_accounts.account_id asc limit 1");
+                 $sqlAC->execute();
+
+                $ac = $sqlAC->fetch(PDO::FETCH_ASSOC);
+                $Firstaccount_id=$ac['account_id'];
+                $firstDescription =  htmlspecialchars($ac['account_name']) ." | ".htmlspecialchars($ac['method_name']);
+
             // Fetch wallet methods from database
               $methods = $db->query("
               SELECT account_id, account_name, account_reference, account_method_type, balance, created_at,method_name FROM tbl_accounts
@@ -184,11 +194,15 @@
 
         </div> <!-- .container-fluid -->
  
-        
+<script>
+    var firstID = <?php echo json_encode($Firstaccount_id); ?>;
+    var firstDescs = <?php echo json_encode($firstDescription); ?>;
+</script>       
 <script type="text/javascript">
   
 
  recent_income(1);
+nextToRecords(firstID,firstDescs)
 
 
  function nextToRecords(account_id,description) {

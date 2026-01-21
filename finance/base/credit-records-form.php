@@ -63,26 +63,16 @@ require_once("../../include/initialize.php");
                         <div class="form-group">
                           <input type="number" min="1" name="amount"  placeholder="Write Deposited amount..." class="form-control"  required >
                         </div>
-                       
-                          <!-- <h6 class="mb-3">Description:</h6> -->
-                      <!--<form action="" method="POST">-->
-                        <!-- <div class="form-group"> -->
-                          
-                         <!-- <textarea  rows="2" name="description"  placeholder="Write the description..." class="form-control" ></textarea> -->
-                        <!-- </div> -->
-                       
-                        
-                       
-                      
+
                         <hr class="my-4" style="width:100%;background-color:#000; height: 1px; border: 0; ">
                         <div class="d-flex justify-content-between align-items-center">
                           <div class="form-check form-check-inline ml-1">
                             
-                          </div>
+                        </div>
                           
                          <button type="submit"  class="btn btn-lg bg-primary text-white btn-block waves-effect" id="savebtn">
                              <span id="indicator_save"></span>  Save and Continue <i class="fe fe-arrow-right fe-16 ml-2"></i></button>
-                          <br>
+                        <br>
                         
                           
                         </div>
@@ -213,8 +203,6 @@ balance(account_id);
        
 
      $('#balance_area').html("<img src='../img/ajax_loader.gif' width='15'>");
-   
-
      $.ajax({
         url: '../finance/controller/accountController.php',
         type: 'POST',
@@ -240,6 +228,8 @@ $('#save_income_data').on('submit', function (e) {
 
     $('#indicator-save').html("<img src='../img/ajax_loader.gif' width='15'>");
 
+      $("#save_income_data button, #save_income_data input[type=submit]").prop("disabled", true);
+
     $.ajax({
     url: '../finance/controller/creditController.php',
     type: 'POST',
@@ -257,15 +247,18 @@ $('#save_income_data').on('submit', function (e) {
             setTimeout(() => {
                 
             $('#save_income_data')[0].reset();
+            $("#save_income_data button, #save_income_data input[type=submit]").prop("disabled", false);
             }, 1000);
         } else {
             $('#result').html("<span class='text-danger'>" + res.message + "</span>");
+            $("#save_income_data button, #save_income_data input[type=submit]").prop("disabled", false);
         }
     },
     error: function (xhr) {
         console.error(xhr.responseText);
         $('#indicator-save').html('');
         $('#result').html("<span class='text-danger'>Server error</span>");
+        $("#save_income_data button, #save_income_data input[type=submit]").prop("disabled", false);
     }
  });
 });

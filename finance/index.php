@@ -71,6 +71,10 @@ switch ($route) {
         $title   = "Credit Account Transactions";
         $content = "../finance/base/credit-trans.php";
         break;
+    case 'debited':
+        $title   = "Debit Account";
+        $content = "../finance/base/debit-trans.php";
+        break;
     
     
 
