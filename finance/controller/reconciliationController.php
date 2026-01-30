@@ -279,6 +279,241 @@ function deleteInit() {
     exit;
 }
 
+function proccessListAndAction(){
+
+    
+    global $db;
+
+    // Optional filter (example: by income type or reference)
+    $account_id = $_POST['account_id'] ?? '';
+    $description = $_POST['description'] ?? '';
+    $code=  $_POST['code'] ?? '';
+    $reco_mode_id=  $_POST['reco_mode_id'] ?? '';
+    $keyword = intval($account_id);
+    
+    // Fetch transaction records
+    $stmt = $db->prepare("
+    SELECT 
+        transaction_id,
+        reference_code,
+        transaction_code,
+        transaction_type,
+        debit_amount,
+        credit_amount,
+        transaction_date,
+        reference,
+        status,
+        created_at,
+        issues
+    FROM tbl_bank_transaction
+    WHERE account_id = :account_id
+    ORDER BY transaction_date DESC
+");
+
+$stmt->execute([':account_id' => $account_id]);
+$transactions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+     $stmtBalance = $db->prepare("
+            SELECT balance 
+            FROM tbl_accounts 
+            WHERE account_id = :account_id
+            LIMIT 1
+        ");
+
+        $stmtBalance->bindParam(':account_id', $account_id, PDO::PARAM_INT);
+        $stmtBalance->execute();
+        $row = $stmtBalance->fetch(PDO::FETCH_ASSOC);
+        $balance = $row['balance'];
+
+
+            // Load bank transaction
+     $stmt = $db->prepare("
+    SELECT 
+        COALESCE(SUM(debit_amount), 0)  AS total_debit,
+        COALESCE(SUM(credit_amount), 0) AS total_credit
+    FROM tbl_bank_transaction
+    WHERE account_id = :account_id
+      AND reference_code = :reference_code and (status=1 OR status=2)
+");
+
+$stmt->execute([
+    ':account_id' => (int)$account_id,
+    ':reference_code' => $code
+]);
+
+$row = $stmt->fetch(PDO::FETCH_ASSOC);
+$total= (float)$row['total_credit'] + (float)$row['total_debit'];
+$balance = (float)$row['total_credit'] - (float)$row['total_debit'];
+
+
+// reconcilied
+$recStmt = $db->prepare("
+    SELECT
+        COALESCE(SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE 0 END), 0) AS reconciled_credit,
+        COALESCE(SUM(CASE WHEN transaction_type = 'expense'  THEN amount ELSE 0 END), 0) AS reconciled_debit
+    FROM tbl_reconciliation
+    WHERE reference_code = :reference_code
+      AND account_id = :account_id
+");
+
+$recStmt->execute([
+    ':reference_code' => $code,
+    ':account_id' => (int)$account_id
+]);
+
+$rec = $recStmt->fetch(PDO::FETCH_ASSOC);
+
+$reconciledCredit = (float)$rec['reconciled_credit'];
+$reconciledDebit  = (float)$rec['reconciled_debit'];
+$recTotal=$reconciledCredit + $reconciledDebit;
+$reconciledBalance = $reconciledCredit - $reconciledDebit;
+
+$finishedPercent=$recTotal > 0 && $total > 0 ? ($recTotal / $total) * 100 : 0;
+$finishedPercent = round($finishedPercent, 2);
+
+ // all reco mode type 
+    $modeStmt = $db->prepare("
+        SELECT m_id,re_mode_name 
+        FROM reco_mode_type
+    ");
+    $modeStmt->execute();
+    $modeRow = $modeStmt->fetchAll(PDO::FETCH_ASSOC);
+
+  $mode_type = 1;
+  // related info
+    $stmt = $db->prepare("
+            SELECT reconciliation_mode.*, reco_mode_type.*
+            FROM reconciliation_mode 
+            LEFT JOIN reco_mode_type ON reconciliation_mode.mode_type=reco_mode_type.m_id
+            WHERE account_id = :account_id AND reco_mode_id = :reco_mode_id AND (status=1 OR status=3)
+            LIMIT 1
+        ");
+
+        $stmt->bindParam(':account_id', $account_id, PDO::PARAM_INT);
+        $stmt->bindParam(':reco_mode_id', $reco_mode_id, PDO::PARAM_INT);
+        $stmt->execute();
+        // IF exists
+
+        $row= $stmt->fetch();
+
+      //$mode_type=$row['re_mode_name'];
+      $period = date('d M Y', strtotime($row['from_date'])) . '</b> up to <b>' . date('d M Y', strtotime($row['to_date']));
+
+     $from_date= $row['from_date'];
+     $to_date= $row['to_date'];
+      // current transaction on account
+      $stmt = $db->prepare("
+    SELECT 
+        entry_key AS transaction_id,
+        transaction_code,
+        entry_date AS transaction_date,
+        amount,
+        charges,
+        description AS reference,
+        reconciled AS status,
+        action,
+        reconciled AS status
+        
+    FROM vw_journal_entries
+    WHERE credit_account_id = :account_id  and entry_date BETWEEN :from_date AND :to_date and reconciled=0
+    ORDER BY entry_date DESC
+");
+
+$stmt->execute([
+    ':account_id' => $account_id,
+    ':from_date' => $from_date,
+    ':to_date' => $to_date
+]);
+$localTransactions = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    ?>
+
+    
+
+  
+    
+
+  
+
+
+    <!-- Recent Income Header -->
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+           <small><div class="badge bg-warning my-2">In progress <span class="float-end"><?= $finishedPercent ?> % </span> </div> |</small> <?= $description ?> # <small><?= $period ?> # <?php echo $mode_type; ?></small>   
+            <span class="fe fe-arrow-down float-right" onclick="proceedToMakeAudit(<?= $keyword ?>,'<?= $description ?>',<?= $reco_mode_id ?>,'<?= $code ?>');"></span>
+        </h5>
+    </div>
+
+      <!-- Nav tabs -->
+    <ul class="nav nav-tabs mb-3" id="myTab" role="tablist">
+        <?php 
+         foreach ($modeRow as $mode) {
+            ?>
+        <li class="nav-item">
+            <a class="nav-link <?php echo $mode_type === $mode['m_id'] ? 'active' : ''; ?>"  id="general-tab" data-toggle="tab" href="#general<?= $mode['m_id'] ?>" role="tab" aria-controls="general" aria-selected="true">Reconciliation | <?= $mode['re_mode_name'] ?></a>
+        </li>
+        <?php } ?>  
+       
+    </ul>
+
+    <!-- Tab content -->
+    <div class="tab-content" id="myTabContent">
+
+        <!-- General Tab -->
+         <?php 
+         foreach ($modeRow as $mode) {
+            ?>
+        <div class="tab-pane fade show <?php echo $mode_type == $mode['m_id'] ? 'active' : ''; ?>" id="general<?= $mode['m_id'] ?>" role="tabpanel" aria-labelledby="general-tab">
+            <div class="row">
+                <div class="col-md-8 col-xl-5">
+                    <!-- form for upload csv -->
+                     <?php 
+                    
+                    if($mode['m_id']==1){
+                        include '../base/csv_upload_form.php';
+                        include '../base/reco_mode_type_manualy.php'; 
+                    }
+                    if($mode['m_id']==2){
+                        //include '../base/reco_mode_type_csv_out.php';
+                    }
+                    if($mode['m_id']==3){
+                    //include '../base/reco_mode_type_live.php'; 
+                    }
+                    ?>
+
+                  
+                </div>
+                  <div class="col-md-8 col-xl-7">
+                    <?php 
+                    if($mode['m_id']==1){
+                        include '../base/unVerfiedLocal_transaction.php'; 
+                    }
+                    if($mode['m_id']==2){
+                        //include '../base/reco_mode_type_csv_out.php';
+                    }
+                    if($mode['m_id']==3){
+                    //include '../base/reco_mode_type_live.php'; 
+                    }
+                    ?>
+                    </div>
+            </div>
+        </div>
+          <?php } ?>  
+       
+
+        
+
+        
+
+    </div>
+
+    <?php
+
+}
+
+
+
 
     
 
@@ -297,6 +532,9 @@ switch($action) {
          break;
     case 'delete-initReco':
         deleteInit();
+        break;
+    case 'reconciliation-process':
+        proccessListAndAction();
         break;
         
     default:

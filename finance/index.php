@@ -75,6 +75,11 @@ switch ($route) {
         $title   = "Debit Account";
         $content = "../finance/base/debit-trans.php";
         break;
+    case 'reconciliation':
+        $title   = "Account Reconciliation and Fix Transaction";
+        $content = "../finance/base/reconc_process.php";
+        break;
+    
     
     
 

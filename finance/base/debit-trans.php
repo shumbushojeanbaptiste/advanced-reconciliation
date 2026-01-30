@@ -233,25 +233,26 @@ nextToRecords(firstID,firstDescs)
     });
 }
 
-function cancelIncome(id,account_id,description,amount) {
+function cancelExpense(id,account_id,description,amount) {
     $('#remove_spinner' + id)
         .html("<img src='../img/ajax_loader.gif' width='15'>")
         .fadeIn('fast');
     $.ajax({
-        url: '../finance/controller/creditController.php',
+        url: '../finance/controller/debitController.php',
         type: 'POST',
         data: {
-            action: 'delete-income-data',
-            income_id: id,
+            action: 'delete-expense-data',
+            expense_id: id,
             account_id: account_id,
             description: description,
             amount: amount
         },
         success: function (res) {
+            
 
              if (res.status === 'success') {
                 // reload recent income list
-                recent_incomeAccount(account_id,description)
+                recent_expenseAccount(account_id,description)
                 balance(account_id);
             } else {
                 alert(res.message || 'Failed to delete income');

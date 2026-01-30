@@ -6,8 +6,9 @@ require_once("../../include/initialize.php");
    $account_name=$_POST['description'];
 
    $stmt = $db->prepare("
-            SELECT * 
+            SELECT reconciliation_mode.*, reco_mode_type.*
             FROM reconciliation_mode 
+            LEFT JOIN reco_mode_type ON reconciliation_mode.mode_type=reco_mode_type.m_id
             WHERE account_id = :account_id and (status=1 or status=3)
             LIMIT 1
         ");
@@ -109,6 +110,7 @@ require_once("../../include/initialize.php");
 
       $row= $stmt->fetch();
       $code= $row['reco_code'];
+      $mode_type=$row['re_mode_name'];
       $period = date('d M Y', strtotime($row['from_date'])) . '</b> up to <b>' . date('d M Y', strtotime($row['to_date']));
 
       // Load bank transaction
@@ -177,8 +179,8 @@ $finishedPercent = round($finishedPercent, 2);
 									 Reconciliation status : <div class="badge bg-warning my-2">In progress <?= $total."#".$account_id ?></div>
 								</div>
 								<div class="card-body px-4 pt-2 text-right">
-									<p><b> <?=  $code  ?></b>, <br>
-                  <b> <?= $period ?></b>
+									<p><b> <?=  $code  ?> | <?= $mode_type ?></b>, <br>
+                  <b> <?= $period ?> </b>
                   
                  
                   </p>

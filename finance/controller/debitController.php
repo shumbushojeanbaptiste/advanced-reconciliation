@@ -82,7 +82,7 @@ function recentExpense() {
                             <?php if ($row['reconciled'] >= 0): ?>
                             <span class="fe fe-check text-success" title="Approved deposit"></span>
                             <?php else: ?>
-                               <span class="fe fe-trash text-danger" title="Below limit — can delete" onClick="cancelIncome()"></span>
+                               <span class="fe fe-trash text-success" title="Below limit — can delete2" onClick="cancelExpense()"></span>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -208,14 +208,14 @@ function saveExpense() {
 }
 
 
-function deleteIncome() {
+function deleteExpense() {
     global $db;
 
     header('Content-Type: application/json');
 
-    $income_id  = intval($_POST['income_id'] ?? 0);
+    $expense_id  = intval($_POST['expense_id'] ?? 0);
 
-    if ($income_id <= 0) {
+    if ($expense_id <= 0) {
         echo json_encode([
             'status' => 'error',
             'message' => 'Invalid income ID'
@@ -231,19 +231,19 @@ function deleteIncome() {
            1. Fetch income record
         ============================ */
         $stmt = $db->prepare("
-            SELECT income_id, amount, account_id
-            FROM tbl_income
-            WHERE income_id = :income_id
+            SELECT expense_id, amount, account_id
+            FROM tbl_expense
+            WHERE expense_id = :expense_id
             FOR UPDATE
         ");
-        $stmt->execute([':income_id' => $income_id]);
+        $stmt->execute([':expense_id' => $expense_id]);
         $income = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$income) {
             $db->rollBack();
             echo json_encode([
                 'status' => 'error',
-                'message' => 'Income not found'
+                'message' => 'Expense not found'
             ]);
             return;
         }
@@ -251,33 +251,13 @@ function deleteIncome() {
         $amount     = (float)$income['amount'];
         $account_id = (int)$income['account_id'];
 
-        /* ===========================
-           2. Check account balance
-        ============================ */
-        $stmt = $db->prepare("
-            SELECT balance
-            FROM tbl_accounts
-            WHERE account_id = :account_id
-            FOR UPDATE
-        ");
-        $stmt->execute([':account_id' => $account_id]);
-        $balance = (float)$stmt->fetchColumn();
-
-        if ($balance < $amount) {
-            $db->rollBack();
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'Cannot delete income. Account balance is insufficient.'
-            ]);
-            return;
-        }
-
+      
         /* ===========================
            3. Decrement account balance
         ============================ */
         $stmt = $db->prepare("
             UPDATE tbl_accounts
-            SET balance = balance - :amount
+            SET balance = balance + :amount
             WHERE account_id = :account_id
         ");
         $stmt->execute([
@@ -289,17 +269,17 @@ function deleteIncome() {
            4. Delete income record
         ============================ */
         $stmt = $db->prepare("
-            DELETE FROM tbl_income
-            WHERE income_id = :income_id
+            DELETE FROM tbl_expense
+            WHERE expense_id = :expense_id
         ");
-        $stmt->execute([':income_id' => $income_id]);
+        $stmt->execute([':expense_id' => $expense_id]);
 
         // ✅ Commit transaction
         $db->commit();
 
         echo json_encode([
             'status' => 'success',
-            'message' => 'Income deleted successfully'
+            'message' => 'expense deleted successfully'
         ]);
 
     } catch (Exception $e) {
@@ -310,13 +290,13 @@ function deleteIncome() {
 
         echo json_encode([
             'status' => 'error',
-            'message' => 'Failed to delete income',
+            'message' => 'Failed to delete expense',
             'error'   => $e->getMessage()
         ]);
     }
 }
 
-function accountRencentIncome(){
+function accountRencentExpense(){
 
     
     global $db;
@@ -419,14 +399,16 @@ function accountRencentIncome(){
                             <?= number_format($total, 2); ?>
                         </td>
 
-                         <td>
-                            <?= htmlspecialchars(date("d/m/Y H:i:s", strtotime($row['created_at']))); ?>
+                        <td>
+                         <?= htmlspecialchars(date("d/m/Y H:i:s", strtotime($row['created_at']))); ?>
                         </td>
 
                         <td>
-                          
-                            <span class="fe fe-trash text-danger" title="Below limit — can delete" onClick="cancelIncome(<?= $row['expense_id'] ?>,<?= $account_id ?>,'<?= $description ?>','<?= $row['amount'] ?>')"></span>
-                            
+                           <?php if ($row['reconciled'] == 0): ?>
+                            <span class="fe fe-trash text-danger" title="Below limit — can delete" onClick="cancelExpense(<?= $row['expense_id'] ?>,<?= $account_id ?>,'<?= $description ?>','<?= $row['amount'] ?>')"></span>
+                           <?php else: ?>
+                          <span class="fe fe-check text-success" title="Approved expense"></span>
+                            <?php endif ?>
                             <span id="remove_spinner<?= $row['expense_id'] ?>"> </span>
                         </td>
                          <?php   $limit=$limit-$row['amount']; ?>
@@ -457,11 +439,11 @@ switch($action) {
     case 'save_expense_data';
     saveExpense();
          break;
-    case 'delete-income-data':
-        deleteIncome();
+    case 'delete-expense-data':
+        deleteExpense();
         break;
     case 'recent-account':
-        accountRencentIncome();
+        accountRencentExpense();
         break;
         
     default:
