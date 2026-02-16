@@ -78,7 +78,8 @@ require_once("../../include/initialize.php");
       $reco_mode_id=$row['reco_mode_id'];
       $mode_type=$row['re_mode_name'];
       $period = date('d M Y', strtotime($row['from_date'])) . '</b> up to <b>' . date('d M Y', strtotime($row['to_date']));
-
+      $from_date = $row['from_date'];
+      $to_date = $row['to_date'];
       // Load bank transaction
      $stmt = $db->prepare("
     SELECT 
@@ -98,30 +99,32 @@ $row = $stmt->fetch(PDO::FETCH_ASSOC);
 $total= (float)$row['total_credit'] + (float)$row['total_debit'];
 $balance = (float)$row['total_credit'] - (float)$row['total_debit'];
 
-// reconcilied
-$recStmt = $db->prepare("
-    SELECT
-        COALESCE(SUM(CASE WHEN transaction_type = 'income' THEN amount ELSE 0 END), 0) AS reconciled_credit,
-        COALESCE(SUM(CASE WHEN transaction_type = 'expense'  THEN amount ELSE 0 END), 0) AS reconciled_debit
-    FROM tbl_reconciliation
-    WHERE reference_code = :reference_code
-      AND account_id = :account_id
+// sum of reconciled income and expense in the period
+$stmt = $db->prepare("
+    SELECT 
+        (SELECT COALESCE(SUM(amount), 0) FROM tbl_income WHERE account_id = :account_id  AND DATE(received_at) BETWEEN :from_date AND :to_date) AS total_reco_income,
+        (SELECT COALESCE(SUM(amount), 0) FROM tbl_expense WHERE account_id = :account_id AND DATE(paid_at) BETWEEN :from_date AND :to_date) AS total_reco_expense
 ");
-
-$recStmt->execute([
-    ':reference_code' => $code,
-    ':account_id' => (int)$account_id
+$stmt->execute([
+    ':account_id' => $account_id,
+    ':from_date' => $from_date,
+    ':to_date' => $to_date
 ]);
+$row = $stmt->fetch(PDO::FETCH_ASSOC);
+$recoTotal = (float)$row['total_reco_income'] + (float)$row['total_reco_expense'];
+$difference = $total - $recoTotal;
 
-$rec = $recStmt->fetch(PDO::FETCH_ASSOC);
+// Calculate finished percentage
+if ($total > 0 and $difference >= 0) {
+    $finishedPercent = ($recoTotal / $total) * 100;
+} else if ($recoTotal > 0 and $difference < 0){
+    $finishedPercent = ($total / $recoTotal) * 100;
+}
+else {
+    $finishedPercent = 0;
+}
 
-$reconciledCredit = (float)$rec['reconciled_credit'];
-$reconciledDebit  = (float)$rec['reconciled_debit'];
-$recTotal=$reconciledCredit + $reconciledDebit;
-$reconciledBalance = $reconciledCredit - $reconciledDebit;
 
-$finishedPercent=$recTotal > 0 && $total > 0 ? ($recTotal / $total) * 100 : 0;
-$finishedPercent = round($finishedPercent, 2);
 
 
       ?>
@@ -142,7 +145,7 @@ $finishedPercent = round($finishedPercent, 2);
 										</div>
 									</div>
 									<h5 class="card-title mb-0"><?= $account_name ?></h5>
-									 Reconciliation status : <div class="badge bg-warning my-2">In progress <?= $total."#".$account_id ?></div>
+									 Reconciliation status : <div class="badge bg-warning my-2">In progress <?= $total."#" ?></div>
 								</div>
 								<div class="card-body px-4 pt-2 text-right">
 									<p><b> <?=  $code  ?> | <?= $mode_type ?></b>, <br>
@@ -155,7 +158,7 @@ $finishedPercent = round($finishedPercent, 2);
 								</div>
 								<ul class="list-group list-group-flush">
 									<li class="list-group-item px-4 pb-4">
-										<p class="mb-2 font-weight-bold">Progress <span class="float-end"><?= $finishedPercent ?>%</span></p>
+										<p class="mb-2 font-weight-bold">Progress <span class="float-end"><?= number_format($finishedPercent,2) ?>%</span></p>
 										<div class="progress progress-sm">
 											<div class="progress-bar" role="progressbar" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"
 												style="width: <?= $finishedPercent ?>%;">

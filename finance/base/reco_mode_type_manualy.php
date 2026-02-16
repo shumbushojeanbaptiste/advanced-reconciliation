@@ -16,7 +16,7 @@
                     <tr>
                         <th>#</th>
                         <th>Date</th>
-                        <th>Transaction Type</th>
+                        <!-- <th>Transaction Type</th> -->
                         <th class="text-end">Income (FRW)</th>
                         <th class="text-end">Expense (FRW)</th>
                        
@@ -28,7 +28,8 @@
                 <?php 
                            
                 $i = 1;  
-                
+                $totalCredit = 0;
+                $totalDebit = 0;
                 foreach ($transactions as $row): 
                     if ($row['debit_amount'] > 0) {
                         $debit = number_format($row['debit_amount'], 0);
@@ -63,6 +64,29 @@
     <td>
         <?= $i++; ?>
 
+        
+    </td>
+
+    <td>
+        <b><?= htmlspecialchars(date("d/m/Y", strtotime($row['transaction_date']))); ?></b>
+    </td>
+
+    <!-- <td>
+        <b><?= htmlspecialchars($row['transaction_type']); ?></b>
+    </td> -->
+
+    <td class="text-end"><?= $credit; ?></td>
+    <td class="text-end"><?= $debit; ?></td>
+
+    <td>
+        <?php if ($row['status'] == 0): ?>
+            <span class=" text-danger"></span>
+        <?php else: ?>
+            <?php $totalCredit += $row['credit_amount']; ?>
+            <?php $totalDebit += $row['debit_amount']; ?>
+            <span class="fe fe-check text-success" title="Approved transaction"></span>
+        <?php endif ?>
+
         <?php if ($hasIssues): ?>
             <span class="fe fe-plus-circle text-danger ms-2 cursor-pointer"
                   id="toggleIcon<?= $row['transaction_id'] ?>"
@@ -71,33 +95,17 @@
             </span>
         <?php endif; ?>
     </td>
-
-    <td>
-        <b><?= htmlspecialchars(date("d/m/Y", strtotime($row['transaction_date']))); ?></b>
-    </td>
-
-    <td>
-        <b><?= htmlspecialchars($row['transaction_type']); ?></b>
-    </td>
-
-    <td class="text-end"><?= $credit; ?></td>
-    <td class="text-end"><?= $debit; ?></td>
-
-    <td>
-        <?php if ($row['status'] == 0): ?>
-            <span class=" text-danger">Issues</span>
-        <?php else: ?>
-            <span class="fe fe-check text-success" title="Approved transaction"></span>
-        <?php endif ?>
-    </td>
 </tr>
 
 <?php if ($hasIssues): ?>
 <tr id="issuesRow<?= $row['transaction_id'] ?>" style="display:none;">
-    <td colspan="6">
+    <td colspan="5">
         <div class="alert alert-danger mb-0">
             <b>Issues found:</b><br>
-            <?= nl2br(htmlspecialchars($issues)); ?>
+            <?= nl2br(htmlspecialchars($issues)); 
+             $credit = 0;
+             $debit = 0;
+            ?>
         </div>
     </td>
 </tr>
@@ -106,16 +114,16 @@
 
                 <?php endforeach; ?>
                 <tr>
-                    <th colspan="3" class="text-end">Balance:</th>
+                    <th colspan="2" class="text-end">Balance:</th>
                     <th class="text-end">
                         <?php 
-                            $totalCredit = array_sum(array_column($transactions, 'credit_amount'));
+                            //$totalCredit = array_sum(array_column($transactions, 'credit_amount'));
                             echo number_format($totalCredit, 2); 
                         ?>
                     </th>
                     <th class="text-end ">
                         <?php 
-                            $totalDebit = array_sum(array_column($transactions, 'debit_amount'));
+                           // $totalDebit = array_sum(array_column($transactions, 'debit_amount'));
                             echo number_format($totalDebit, 2); 
                         ?>
                     </th>
@@ -127,7 +135,7 @@
             </table>
         </div>
     <?php else: ?>
-        <p class="text-muted text-center">No records found.</p>
+    <p class="text-muted text-center"> No records found.</p>
     <?php endif; ?>
 
     <script>

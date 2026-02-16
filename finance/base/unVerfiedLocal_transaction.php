@@ -1,9 +1,13 @@
-  <?php if (!empty($localTransactions)): ?>
+  <?php 
+  $totalAmount = 0;
+  $totalCharges = 0;
+  $i2 = 0;
+  if (!empty($localTransactions)): ?>
         <div class="table-responsive mb-3">
             <table class="table table-striped table-hover table-borderless" style="font-size:12px;">
                 <thead class="table-light">
                     <tr>
-                        <th>#</th>
+                       
                         <th>Date</th>
                         <th>Transaction Type</th>
                         <th class="text-end">Amount (FRW)</th>
@@ -17,7 +21,7 @@
                 <tbody>
                 <?php 
                            
-                $i = 1;  
+                $i2 = 1;  
                 $totalAmount = 0;
                 $totalCharges = 0;
                 
@@ -34,14 +38,14 @@
                  
                 ?>
                     <tr>
-                        <td><?= $i++; ?></td>
+                       
 
                         <td>
-                            <b><?= htmlspecialchars(date("d/m/Y", strtotime($row['transaction_date']))); ?></b>
+                            <?= $i2++.". "; ?><b><?= htmlspecialchars(date("d/m/Y", strtotime($row['transaction_date']))); ?></b>
                         </td>
 
                         <td>
-                            <b><?= htmlspecialchars($row['action']); ?></b>
+                            <b><small><?= htmlspecialchars($row['action']); ?></small></b>
                         </td>
 
 
@@ -70,7 +74,7 @@
                     </tr>
                 <?php endforeach; ?>
                 <tr>
-                    <th colspan="3" class="text-end">Balance:</th>
+                    <th colspan="2" class="text-end">Balance:</th>
                     <th class="text-end">
                         <?= number_format($totalAmount, 2); ?>
                     </th>
@@ -78,7 +82,7 @@
                         <?= number_format($totalCharges, 2); ?>
                     </th>
                     <th class="text-end">
-                        <?= number_format($totalAmount + $totalCharges, 2); ?>
+                        <?= number_format($totalAmount - $totalCharges, 2); ?>
                     </th>
                     <th></th>
                 </tr>

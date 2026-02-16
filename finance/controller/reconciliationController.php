@@ -398,7 +398,7 @@ $finishedPercent = round($finishedPercent, 2);
         $row= $stmt->fetch();
 
       //$mode_type=$row['re_mode_name'];
-      $period = date('d M Y', strtotime($row['from_date'])) . '</b> up to <b>' . date('d M Y', strtotime($row['to_date']));
+      $period = date('d M Y', strtotime($row['from_date'])) . '</b> up to <b>' . date('d M Y', strtotime($row['to_date'])).'</b>';
 
      $from_date= $row['from_date'];
      $to_date= $row['to_date'];
@@ -497,6 +497,13 @@ $localTransactions = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     }
                     ?>
                     </div>
+
+                    <?php 
+                    if($mode['m_id']==1){
+                        include '../base/reco_statisticsAndProceed.php'; 
+                    }
+                    ?>
+
             </div>
         </div>
           <?php } ?>  
@@ -511,6 +518,214 @@ $localTransactions = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <?php
 
 }
+
+function finilizeReco(){
+    global $db;
+
+    header('Content-Type: application/json');
+
+    $code = $_POST['code'] ?? '';
+
+    if ($code == '') {
+        echo json_encode([
+            'status' => 'error',
+            'message' => "Invalid reconciliation ID  $code"
+        ]);
+        exit;
+    }
+
+    try {
+
+        // START TRANSACTION
+        $db->beginTransaction();
+
+        // 1️⃣ Get reconciliation details (date range + account)
+        $stmt = $db->prepare("
+            SELECT from_date, to_date, account_id 
+            FROM reconciliation_mode 
+            WHERE reco_code = :code 
+            LIMIT 1
+        ");
+        $stmt->execute([':code' => $code]);
+        $reco = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$reco) {
+            throw new Exception("Reconciliation not found");
+        }
+
+        $from = $reco['from_date'];
+        $to   = $reco['to_date'];
+        $account_id = $reco['account_id'];
+
+        // 2️⃣ Update Expenses in range
+        $updateExpense = $db->prepare("
+            UPDATE tbl_expense 
+            SET reconciled = 1
+            WHERE account_id = :account_id
+            AND DATE(paid_at) BETWEEN :from_date AND :to_date
+        ");
+
+        $updateExpense->execute([
+            ':account_id' => $account_id,
+            ':from_date'  => $from,
+            ':to_date'    => $to
+        ]);
+
+        // 3️⃣ Update Income in range
+        $updateIncome = $db->prepare("
+            UPDATE tbl_income 
+            SET reconciled = 1
+            WHERE account_id = :account_id
+            AND DATE(received_at) BETWEEN :from_date AND :to_date
+        ");
+
+        $updateIncome->execute([
+            ':account_id' => $account_id,
+            ':from_date'  => $from,
+            ':to_date'    => $to
+        ]);
+
+        // 4️⃣ Finalize reconciliation
+        $updateReco = $db->prepare("
+            UPDATE reconciliation_mode
+            SET status = 4, updated_at = NOW()
+            WHERE reco_code = :code
+            LIMIT 1
+        ");
+
+        $updateReco->execute([':code' => $code]);
+
+        // COMMIT
+        $db->commit();
+
+        echo json_encode([
+            'status' => 'success',
+            'message' => 'Reconciliation finalized successfully'
+        ]);
+
+    } catch (Exception $e) {
+
+        // ROLLBACK on error
+        $db->rollBack();
+
+        echo json_encode([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ]);
+    }
+
+    exit;
+}
+
+function resetRestart(){
+    global $db;
+
+    header('Content-Type: application/json');
+
+    $code = $_POST['code'] ?? '';
+
+    if ($code == '') {
+        echo json_encode([
+            'status' => 'error',
+            'message' => "Invalid reconciliation ID  $code"
+        ]);
+        exit;
+    }
+
+    try {
+
+        // START TRANSACTION
+        $db->beginTransaction();
+
+        // 1️⃣ Get reconciliation details (date range + account)
+        $stmt = $db->prepare("
+            SELECT from_date, to_date, account_id 
+            FROM reconciliation_mode 
+            WHERE reco_code = :code 
+            LIMIT 1
+        ");
+        $stmt->execute([':code' => $code]);
+        $reco = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$reco) {
+            throw new Exception("Reconciliation not found");
+        }
+
+        $from = $reco['from_date'];
+        $to   = $reco['to_date'];
+        $account_id = $reco['account_id'];
+
+        // 2️⃣ Update Expenses in range
+        $updateExpense = $db->prepare("
+            UPDATE tbl_expense 
+            SET reconciled = 0
+            WHERE account_id = :account_id
+            AND DATE(paid_at) BETWEEN :from_date AND :to_date
+        ");
+
+        $updateExpense->execute([
+            ':account_id' => $account_id,
+            ':from_date'  => $from,
+            ':to_date'    => $to
+        ]);
+
+        // 3️⃣ Update Income in range
+        $updateIncome = $db->prepare("
+            UPDATE tbl_income 
+            SET reconciled = 0
+            WHERE account_id = :account_id
+            AND DATE(received_at) BETWEEN :from_date AND :to_date
+        ");
+
+        $updateIncome->execute([
+            ':account_id' => $account_id,
+            ':from_date'  => $from,
+            ':to_date'    => $to
+        ]);
+
+        // 4️⃣ Finalize reconciliation
+        $updateReco = $db->prepare("
+            UPDATE reconciliation_mode
+            SET status = 1, updated_at = NOW()
+            WHERE reco_code = :code
+            LIMIT 1
+        ");
+
+        $updateReco->execute([':code' => $code]);
+
+        // delete bank transaction
+        $deleteBankTrans = $db->prepare("
+            DELETE FROM tbl_bank_transaction
+            WHERE  reference_code = :reference_code
+        ");
+        $deleteBankTrans->execute([
+            ':reference_code' => $code
+        ]);
+
+
+
+        // COMMIT
+        $db->commit();
+
+        echo json_encode([
+            'status' => 'success',
+            'message' => 'Reconciliation reseted successfully'
+        ]);
+
+    } catch (Exception $e) {
+
+        // ROLLBACK on error
+        $db->rollBack();
+
+        echo json_encode([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ]);
+    }
+
+    exit;
+}
+
 
 
 
@@ -535,6 +750,12 @@ switch($action) {
         break;
     case 'reconciliation-process':
         proccessListAndAction();
+        break;
+    case 'finilize':
+        finilizeReco();
+        break;
+    case 'reset-restart':
+        resetRestart();
         break;
         
     default:
