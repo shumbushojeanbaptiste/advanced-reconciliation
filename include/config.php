@@ -1,29 +1,44 @@
 <?php
 ob_start();
-$this_file = str_replace('\\', '/', __File__) ;
+
+require_once __DIR__ . '/../vendor/autoload.php';
+
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
+$dotenv->load();
+
+// Define roots
+$this_file = str_replace('\\', '/', __FILE__);
 $doc_root = $_SERVER['DOCUMENT_ROOT'];
 
-$web_root =  str_replace (array($doc_root, "include/config.php") , '' , $this_file);
-$server_root = str_replace ('config/config.php' ,'', $this_file);
+$web_root = str_replace([$doc_root, "include/config.php"], '', $this_file);
+$server_root = str_replace('config/config.php', '', $this_file);
 
-define ('web_root' , $web_root);
-define('server_root' , $server_root);
+define('web_root', $web_root);
+define('server_root', $server_root);
 
-date_default_timezone_set('Africa/Kigali');
+// Set timezone from .env
+date_default_timezone_set($_ENV['TIMEZONE']);
 
-//PDO Connection 
-$db = new PDO('mysql:host=localhost;dbname=fin_xode;charset=utf8', 'root','');
-$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-$db->query('SET SESSION SQL_BIG_SELECTS=1');
+// PDO Connection
+try {
+    $db = new PDO(
+        "mysql:host={$_ENV['DB_HOST']};dbname={$_ENV['DB_NAME']};charset=utf8",
+        $_ENV['DB_USER'],
+        $_ENV['DB_PASS']
+    );
 
-//2and PDO CONNECTION
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $db->query('SET SESSION SQL_BIG_SELECTS=1');
 
-    $db_username = 'root';
-	$db_password = '';
-	$conn = new PDO( 'mysql:host=localhost;dbname=fin_xode', $db_username, $db_password );
-	if(!$conn){
-		die("Fatal Error: Connection Failed!");
-	}
-	
+    // Optional second connection (if really needed)
+    $conn = new PDO(
+        "mysql:host={$_ENV['DB_HOST']};dbname={$_ENV['DB_NAME']}",
+        $_ENV['DB_USER'],
+        $_ENV['DB_PASS']
+    );
+
+} catch (PDOException $e) {
+    die("Database Connection Failed: " . $e->getMessage());
+}
+
 ob_end_flush();
-?>
