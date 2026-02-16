@@ -1,12 +1,21 @@
+# Enable mod_rewrite
+RewriteEngine On
 
-RewriteEngine on
-# Remove .Html Extension
-DirectorySlash Off
+# -------------------------------
+# Remove .html Extension
+# -------------------------------
+# If requested file with .html exists, serve it
 RewriteCond %{REQUEST_FILENAME}.html -f
-RewriteRule ^(.*)$ $1.html
+RewriteRule ^(.*)$ $1.html [L]
 
-# Remove .Php Extension
-DirectorySlash Off
+# -------------------------------
+# Remove .php Extension
+# -------------------------------
+# If requested file with .php exists, serve it
 RewriteCond %{REQUEST_FILENAME}.php -f
-RewriteRule ^(.*)$ $1.php
+RewriteRule ^(.*)$ $1.php [L]
+
+# -------------------------------
+# Disable directory listing
+# -------------------------------
 Options -Indexes
