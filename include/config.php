@@ -1,4 +1,9 @@
 <?php
+
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 ob_start();
 
 require_once __DIR__ . '/../vendor/autoload.php';
@@ -27,7 +32,7 @@ try {
         $_ENV['DB_PASS']
     );
 
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION); 
     $db->query('SET SESSION SQL_BIG_SELECTS=1');
 
     // Optional second connection (if really needed)
