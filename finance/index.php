@@ -79,6 +79,18 @@ switch ($route) {
         $title   = "Account Reconciliation and Fix Transaction";
         $content = "../finance/base/reconc_process.php";
         break;
+     case 'statements':
+        $title   = "Financials Statements";
+        $content = "../finance/base/statistics-statement.php";
+        break;
+    case 'journal':
+        $title   = "Journal Transactions";
+        $content = "../finance/base/journal-statement.php";
+        break;
+    case 'audit-history':
+        $title   = "Verified Transactions";
+        $content = "../finance/base/verified-transaction.php";
+        break;
     
     
     

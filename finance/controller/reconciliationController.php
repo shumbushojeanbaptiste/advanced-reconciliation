@@ -86,7 +86,7 @@ function    initList(){
                 <b>#<?= htmlspecialchars($row['reco_code']); ?></b>
             </td>
               <td>
-                <?= htmlspecialchars($row['narrative']); ?>
+                <?= htmlspecialchars($row['narrative'] ?? '-'); ?>
             </td>
             <td> 
     <div class="custom-control custom-switch switch-<?= $toggle ?>">

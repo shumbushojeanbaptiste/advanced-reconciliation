@@ -80,9 +80,7 @@
           <li class="nav-item">
             <a class="nav-link" href="reconciliation">Reconciliation & Process</a>
           </li>
-          <li class="nav-item">
-            <a class="nav-link" href="balancing">Adjustment</a>
-          </li>
+       
         </ul>
       </li>
 
@@ -119,11 +117,9 @@
         <ul class="collapse list-unstyled pl-4" id="reports">
           <li class="nav-item"><a class="nav-link" href="statistics">Statistics</a></li>
           <li class="nav-item"><a class="nav-link" href="audit-history">Audit History</a></li>
-          <li class="nav-item"><a class="nav-link" href="balance-stabilities">Stability</a></li>
           <li class="nav-item"><a class="nav-link" href="journal">Journals</a></li>
           <li class="nav-item"><a class="nav-link" href="balance-sheet">Balance Sheet</a></li>
           <li class="nav-item"><a class="nav-link" href="cash-book-sheet">Cash Book</a></li>
-          <li class="nav-item"><a class="nav-link" href="profit-loss">Profit & Loss</a></li>
         </ul>
       </li>
 

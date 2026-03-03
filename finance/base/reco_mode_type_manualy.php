@@ -9,7 +9,12 @@
 }
 </style>
 
-  <?php if (!empty($transactions)): ?>
+  <?php
+  
+  $i = 0;  
+                $totalCredit = 0;
+                $totalDebit = 0;
+  if (!empty($transactions)): ?>
         <div class="table-responsive mb-3">
             <table class="table table-striped table-hover table-borderless" style="font-size:12px;">
                 <thead class="table-light">
