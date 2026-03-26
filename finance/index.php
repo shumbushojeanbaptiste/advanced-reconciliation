@@ -91,6 +91,12 @@ switch ($route) {
         $title   = "Verified Transactions";
         $content = "../finance/base/verified-transaction.php";
         break;
+    case 'stakeholders':
+        $title   = "Stakeholders Managements";
+        $content = "../finance/base/stackholder-trans.php";
+        break;
+       
+    
     
     
     

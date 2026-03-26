@@ -28,6 +28,15 @@
         </a>
       </li>
 
+      <!-- client -->
+        <!-- Statements -->
+      <li class="nav-item">
+        <a class="nav-link" href="stakeholders">
+          <i class="fe fe-users fe-16"></i>
+          <span class="ml-3">Stakeholders</span> 
+        </a>
+      </li>
+
       <!-- General Settings -->
       <li class="nav-item dropdown">
         <a href="#generalSettings" data-toggle="collapse" class="dropdown-toggle nav-link">
